@@ -1,6 +1,14 @@
 'use client';
 
 import { FileCode, Code2, Hash } from 'lucide-react';
+import {
+    SiJavascript, SiTypescript, SiPython, SiC, SiCplusplus,
+    SiGo, SiRust, SiRuby, SiPhp, SiHtml5, SiCss3, SiSass, SiLess, SiJson,
+    SiYaml, SiXml, SiMysql, SiGnubash, SiDocker, SiMarkdown
+} from 'react-icons/si';
+import { FaJava } from 'react-icons/fa';
+import { TbBrandCSharp } from 'react-icons/tb';
+import { VscFileCode, VscTerminalPowershell } from 'react-icons/vsc';
 
 interface StatsDisplayProps {
     stats: Record<string, number>;
@@ -52,6 +60,37 @@ export function StatsDisplay({ stats, totalLines }: StatsDisplayProps) {
             'Other': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
         };
         return colors[category] || colors['Other'];
+    };
+
+    const getLanguageIcon = (language: string) => {
+        const icons: Record<string, React.ElementType> = {
+            'JavaScript': SiJavascript,
+            'TypeScript': SiTypescript,
+            'Python': SiPython,
+            'Java': FaJava,
+            'C': SiC,
+            'C++': SiCplusplus,
+            'C#': TbBrandCSharp,
+            'Go': SiGo,
+            'Rust': SiRust,
+            'Ruby': SiRuby,
+            'PHP': SiPhp,
+            'HTML': SiHtml5,
+            'CSS': SiCss3,
+            'SCSS': SiSass,
+            'Sass': SiSass,
+            'Less': SiLess,
+            'JSON': SiJson,
+            'YAML': SiYaml,
+            'XML': SiXml,
+            'SQL': SiMysql,
+            'Shell': SiGnubash,
+            'Batch': VscFileCode,
+            'PowerShell': VscTerminalPowershell,
+            'Dockerfile': SiDocker,
+            'Markdown': SiMarkdown,
+        };
+        return icons[language] || FileCode;
     };
 
     const totalCodeLines = Object.entries(stats).reduce((acc, [language, lines]) => {
@@ -119,6 +158,8 @@ export function StatsDisplay({ stats, totalLines }: StatsDisplayProps) {
                     {sortedStats.map(([language, lines], index) => {
                         const percentage = ((lines / totalLines) * 100).toFixed(1);
                         const category = getCategory(language);
+                        const Icon = getLanguageIcon(language);
+
                         return (
                             <div
                                 key={language}
@@ -128,7 +169,7 @@ export function StatsDisplay({ stats, totalLines }: StatsDisplayProps) {
                                 <div className="flex items-center justify-between mb-2 relative z-10">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                                            <FileCode className="w-4 h-4" />
+                                            <Icon className="w-4 h-4" />
                                         </div>
                                         <div>
                                             <span className="font-medium text-gray-700 dark:text-gray-200 block">{language}</span>
