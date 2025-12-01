@@ -15,6 +15,17 @@ const MAX_FILE_SIZE_BYTES = process.env.MAX_FILE_SIZE
   ? parseInt(process.env.MAX_FILE_SIZE, 10) * 1024 * 1024
   : 1024 * 1024; // 1MB
 
+const MAX_REPO_SIZE_BYTES = process.env.MAX_REPO_SIZE_BYTES
+  ? parseInt(process.env.MAX_REPO_SIZE_BYTES, 10)
+  : 100 * 1024 * 1024; // 100MB
+
+class RepoTooLargeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RepoTooLargeError';
+  }
+}
+
 export async function POST(request: Request) {
   let tempDir = '';
   try {
@@ -47,6 +58,10 @@ export async function POST(request: Request) {
     const cachedData = await cache.get(cacheKey);
     if (cachedData) {
       console.log(`Cache hit for ${repoUrl}`);
+      // If cached data has an error property (from previous failure), return it as an error response
+      if ((cachedData as any).error) {
+        return NextResponse.json({ error: (cachedData as any).error }, { status: 400 });
+      }
       return NextResponse.json(cachedData);
     }
 
@@ -62,6 +77,11 @@ export async function POST(request: Request) {
       url: repoUrl,
       singleBranch: true,
       depth: 1,
+      onProgress: (args) => {
+        if (args.phase === 'fetch' && args.loaded > MAX_REPO_SIZE_BYTES) {
+          throw new RepoTooLargeError(`Repository too large. Limit is ${(MAX_REPO_SIZE_BYTES / 1024 / 1024).toFixed(2)}MB`);
+        }
+      }
     });
 
     // Count lines
@@ -121,6 +141,25 @@ export async function POST(request: Request) {
 
   } catch (error: unknown) {
     console.error('Error processing repository:', error);
+
+    // Handle RepoTooLargeError specifically
+    if (error instanceof RepoTooLargeError || (error instanceof Error && error.name === 'RepoTooLargeError')) {
+      const errorMessage = error instanceof Error ? error.message : 'Repository too large';
+
+      // Attempt to cache the error if we can parse the URL again (safe fallback)
+      try {
+        const { repoUrl } = await request.clone().json();
+        if (repoUrl) {
+          const cacheKey = `repo:${repoUrl}`;
+          await cache.set(cacheKey, { error: errorMessage });
+        }
+      } catch (e) {
+        console.error('Failed to cache error state:', e);
+      }
+
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Failed to process repository';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   } finally {
