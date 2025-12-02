@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { cache } from '@/lib/cache';
+import { EXTENSION_MAP } from '@/lib/constants';
 
 // Security Constants
 const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS
@@ -128,21 +129,27 @@ export async function POST(request: Request) {
             continue;
           }
 
-          // Check for text files (simple heuristic based on extension or content could be better, but extension is fast)
-          // We'll trust extensions for now and maybe skip binary-looking ones if needed.
-          // List of common binary extensions to skip
-          const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.exe', '.dll', '.bin', '.zip', '.tar', '.gz', '.mp4', '.mp3', '.woff', '.woff2', '.ttf', '.eot'];
           const ext = path.extname(file).toLowerCase();
 
-          if (binaryExtensions.includes(ext)) continue;
+          // Check if extension is known (Allowlist approach)
+          // Special handling for Dockerfile which might not have an extension or might be named Dockerfile
+          let languageName = '';
+
+          if (file === 'Dockerfile') {
+            languageName = 'Dockerfile';
+          } else if (EXTENSION_MAP[ext]) {
+            languageName = EXTENSION_MAP[ext].name;
+          } else {
+            // Unknown extension, skip
+            continue;
+          }
 
           try {
             // Read file content
             const content = await fs.readFile(filePath, 'utf-8');
             const lines = content.split(/\r\n|\r|\n/).length;
 
-            const language = getLanguageFromExtension(ext);
-            stats[language] = (stats[language] || 0) + lines;
+            stats[languageName] = (stats[languageName] || 0) + lines;
             totalLines += lines;
           } catch (error) {
             // Likely a binary file or read error, skip
@@ -194,63 +201,4 @@ export async function POST(request: Request) {
       }
     }
   }
-}
-
-function getLanguageFromExtension(ext: string): string {
-  const map: Record<string, string> = {
-    '.js': 'JavaScript',
-    '.jsx': 'JavaScript',
-    '.ts': 'TypeScript',
-    '.tsx': 'TypeScript',
-    '.py': 'Python',
-    '.java': 'Java',
-    '.c': 'C',
-    '.cpp': 'C++',
-    '.h': 'C/C++ Header',
-    '.cs': 'C#',
-    '.go': 'Go',
-    '.rs': 'Rust',
-    '.rb': 'Ruby',
-    '.php': 'PHP',
-    '.html': 'HTML',
-    '.css': 'CSS',
-    '.scss': 'SCSS',
-    '.sass': 'Sass',
-    '.less': 'Less',
-    '.json': 'JSON',
-    '.md': 'Markdown',
-    '.yml': 'YAML',
-    '.yaml': 'YAML',
-    '.xml': 'XML',
-    '.sql': 'SQL',
-    '.sh': 'Shell',
-    '.bat': 'Batch',
-    '.ps1': 'PowerShell',
-    '.dockerfile': 'Dockerfile',
-    '.dart': 'Dart',
-    '.txt': 'Text',
-    '.doc': 'Word Document',
-    '.docx': 'Word Document',
-    '.kt': 'Kotlin',
-    '.kts': 'Kotlin',
-    '.swift': 'Swift',
-    '.vue': 'Vue',
-    '.svelte': 'Svelte',
-    '.lua': 'Lua',
-    '.pl': 'Perl',
-    '.r': 'R',
-    '.R': 'R',
-    '.ex': 'Elixir',
-    '.exs': 'Elixir',
-    '.hs': 'Haskell',
-    '.scala': 'Scala',
-    '.sol': 'Solidity',
-    '.toml': 'TOML',
-    '.ini': 'INI',
-    '.gradle': 'Gradle',
-    '.rst': 'reStructuredText',
-    '.tex': 'LaTeX',
-    '': 'Unknown', // No extension
-  };
-  return map[ext] || `Other (${ext})`;
 }

@@ -12,6 +12,8 @@ import { FaJava } from 'react-icons/fa';
 import { TbBrandCSharp } from 'react-icons/tb';
 import { VscFileCode, VscTerminalPowershell } from 'react-icons/vsc';
 
+import { LANGUAGE_TO_CATEGORY } from '@/lib/constants';
+
 interface StatsDisplayProps {
     stats: Record<string, number>;
     totalLines: number;
@@ -23,53 +25,7 @@ export function StatsDisplay({ stats, totalLines }: StatsDisplayProps) {
         .filter(([, lines]) => (lines / totalLines) * 100 >= 0.5);
 
     const getCategory = (language: string): string => {
-        const categories: Record<string, string> = {
-            'JavaScript': 'Code',
-            'TypeScript': 'Code',
-            'Python': 'Code',
-            'Java': 'Code',
-            'C': 'Code',
-            'C++': 'Code',
-            'C#': 'Code',
-            'Go': 'Code',
-            'Rust': 'Code',
-            'Ruby': 'Code',
-            'PHP': 'Code',
-            'HTML': 'Code',
-            'CSS': 'Code',
-            'SCSS': 'Code',
-            'Sass': 'Code',
-            'Less': 'Code',
-            'JSON': 'Config',
-            'YAML': 'Config',
-            'XML': 'Config',
-            'SQL': 'Code',
-            'Shell': 'Script',
-            'Batch': 'Script',
-            'PowerShell': 'Script',
-            'Dockerfile': 'Config',
-            'Markdown': 'Docs',
-            'Dart': 'Code',
-            'Text': 'Docs',
-            'Word Document': 'Docs',
-            'Kotlin': 'Code',
-            'Swift': 'Code',
-            'Vue': 'Code',
-            'Svelte': 'Code',
-            'Lua': 'Code',
-            'Perl': 'Code',
-            'R': 'Code',
-            'Elixir': 'Code',
-            'Haskell': 'Code',
-            'Scala': 'Code',
-            'Solidity': 'Code',
-            'TOML': 'Config',
-            'INI': 'Config',
-            'Gradle': 'Config',
-            'reStructuredText': 'Docs',
-            'LaTeX': 'Code',
-        };
-        return categories[language] || 'Other';
+        return LANGUAGE_TO_CATEGORY[language] || 'Other';
     };
 
     const getCategoryColor = (category: string): string => {
@@ -91,6 +47,7 @@ export function StatsDisplay({ stats, totalLines }: StatsDisplayProps) {
             'Java': FaJava,
             'C': SiC,
             'C++': SiCplusplus,
+            'C/C++ Header': SiCplusplus, // Use C++ icon for headers
             'C#': TbBrandCSharp,
             'Go': SiGo,
             'Rust': SiRust,
@@ -129,6 +86,7 @@ export function StatsDisplay({ stats, totalLines }: StatsDisplayProps) {
             'Gradle': SiGnubash, // Using shell icon as fallback/close match
             'reStructuredText': FileText,
             'LaTeX': SiLatex,
+            'Config': FileCode, // Generic config
         };
         return icons[language] || FileCode;
     };
