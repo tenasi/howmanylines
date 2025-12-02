@@ -16,6 +16,7 @@ interface CacheService {
 
 // Memory Cache Implementation
 class MemoryCacheImpl implements CacheService {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private cache: LRUCache<string, any>;
 
     constructor() {

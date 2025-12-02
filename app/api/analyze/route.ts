@@ -6,6 +6,7 @@ import path from 'path';
 import os from 'os';
 import { cache } from '@/lib/cache';
 import { EXTENSION_MAP } from '@/lib/constants';
+import { pLimit } from '@/lib/utils';
 
 // Security Constants
 const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS
@@ -63,7 +64,9 @@ export async function POST(request: Request) {
     if (cachedData) {
       console.log(`Cache hit for ${repoUrl}`);
       // If cached data has an error property (from previous failure), return it as an error response
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((cachedData as any).error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return NextResponse.json({ error: (cachedData as any).error }, { status: 400 });
       }
       return NextResponse.json(cachedData);
@@ -81,6 +84,7 @@ export async function POST(request: Request) {
 
     const customHttp = {
       ...http,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       request: async (args: any) => {
         const response = await http.request({ ...args, signal });
         if (response.body) {
@@ -102,14 +106,16 @@ export async function POST(request: Request) {
     };
 
     // Helper to wrap fs promises with retry on EMFILE
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrapGraceful = (fn: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return async (...args: any[]) => {
         let retries = 10;
         let delay = 100;
         while (true) {
           try {
             return await fn(...args);
-          } catch (error: any) {
+          } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             if ((error.code === 'EMFILE' || error.code === 'ENFILE') && retries > 0) {
               retries--;
               await new Promise(resolve => setTimeout(resolve, delay));
@@ -131,13 +137,13 @@ export async function POST(request: Request) {
 
     const customFs = {
       ...fs,
-      symlink: async (_target: string, _path: string) => {
+      symlink: async (_target: string, _path: string) => { // eslint-disable-line @typescript-eslint/no-unused-vars
         // Mock symlink creation to avoid EPERM on Windows
         return;
       },
       promises: {
         ...gracefulPromises,
-        symlink: async (_target: string, _path: string) => {
+        symlink: async (_target: string, _path: string) => { // eslint-disable-line @typescript-eslint/no-unused-vars
           return;
         },
       }
@@ -155,15 +161,17 @@ export async function POST(request: Request) {
     // Count lines
     const stats: Record<string, number> = {};
     let totalLines = 0;
+    const limit = pLimit(50); // Limit concurrency to avoid EMFILE/OOM
 
     async function traverse(currentPath: string) {
       const files = await fs.readdir(currentPath);
 
-      for (const file of files) {
-        if (file === '.git') continue;
+      const tasks = files.map(async (file) => {
+        if (file === '.git') return;
 
         const filePath = path.join(currentPath, file);
-        const stat = await fs.stat(filePath);
+        // Limit stat calls
+        const stat = await limit(() => fs.stat(filePath));
 
         if (stat.isDirectory()) {
           await traverse(filePath);
@@ -171,13 +179,10 @@ export async function POST(request: Request) {
           // 3. Resource Limits (DoS Protection)
           if (stat.size > MAX_FILE_SIZE_BYTES) {
             console.warn(`Skipping large file ${filePath} (${stat.size} bytes)`);
-            continue;
+            return;
           }
 
           const ext = path.extname(file).toLowerCase();
-
-          // Check if extension is known (Allowlist approach)
-          // Special handling for Dockerfile which might not have an extension or might be named Dockerfile
           let languageName = '';
 
           if (file === 'Dockerfile') {
@@ -185,23 +190,25 @@ export async function POST(request: Request) {
           } else if (EXTENSION_MAP[ext]) {
             languageName = EXTENSION_MAP[ext].name;
           } else {
-            // Unknown extension, skip
-            continue;
+            return;
           }
 
-          try {
-            // Read file content
-            const content = await fs.readFile(filePath, 'utf-8');
-            const lines = content.split(/\r\n|\r|\n/).length;
+          await limit(async () => {
+            try {
+              const content = await fs.readFile(filePath, 'utf-8');
+              const lines = content.split(/\r\n|\r|\n/).length;
 
-            stats[languageName] = (stats[languageName] || 0) + lines;
-            totalLines += lines;
-          } catch (error) {
-            // Likely a binary file or read error, skip
-            console.warn(`Skipping file ${filePath}:`, error);
-          }
+              // Use a lock or just atomic increment (JS is single threaded for this part so it's safe)
+              stats[languageName] = (stats[languageName] || 0) + lines;
+              totalLines += lines;
+            } catch (error) {
+              console.warn(`Skipping file ${filePath}:`, error);
+            }
+          });
         }
-      }
+      });
+
+      await Promise.all(tasks);
     }
 
     await traverse(tempDir);

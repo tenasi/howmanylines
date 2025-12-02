@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent, ChangeEvent } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
@@ -14,7 +14,7 @@ export function RepoInput({ onAnalyze, isLoading }: RepoInputProps) {
     const [error, setError] = useState('');
 
     const normalizeUrl = (input: string) => {
-        let normalized = input.trim();
+        const normalized = input.trim();
 
         // Handle "username/repo" shorthand
         if (!normalized.startsWith('http') && normalized.split('/').length === 2) {
@@ -34,7 +34,7 @@ export function RepoInput({ onAnalyze, isLoading }: RepoInputProps) {
         return normalized;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -64,7 +64,7 @@ export function RepoInput({ onAnalyze, isLoading }: RepoInputProps) {
                     <input
                         type="text"
                         value={url}
-                        onChange={(e) => setUrl(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
                         placeholder="https://github.com/username/repo"
                         className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 px-4 py-3 focus:outline-none text-lg"
                         disabled={isLoading}
