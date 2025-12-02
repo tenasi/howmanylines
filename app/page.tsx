@@ -43,8 +43,29 @@ export default function Home() {
     }
   };
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://example.com';
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'How Many Lines?',
+    url: baseUrl,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Any',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    description: 'Analyze any public Git repository and discover the code composition. Visualize line counts by language in seconds.',
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white selection:bg-purple-500/30 transition-colors duration-300">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Background Gradients */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/20 rounded-full blur-[120px]" />
