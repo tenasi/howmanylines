@@ -5,3 +5,5 @@ export default function Home() {
 
   return <LandingPage baseUrl={baseUrl} />;
 }
+
+export const dynamic = 'force-dynamic';
