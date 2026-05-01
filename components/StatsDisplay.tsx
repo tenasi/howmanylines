@@ -3,7 +3,7 @@
 import { FileCode, Code2, Hash, FileText } from 'lucide-react';
 import {
     SiJavascript, SiTypescript, SiPython, SiC, SiCplusplus,
-    SiGo, SiRust, SiRuby, SiPhp, SiHtml5, SiCss3, SiSass, SiLess, SiJson,
+    SiGo, SiRust, SiRuby, SiPhp, SiHtml5, SiCss, SiSass, SiLess, SiJson,
     SiYaml, SiXml, SiMysql, SiGnubash, SiDocker, SiMarkdown, SiDart,
     SiKotlin, SiSwift, SiVuedotjs, SiSvelte, SiLua, SiPerl, SiR, SiElixir,
     SiHaskell, SiScala, SiSolidity, SiLatex
@@ -53,7 +53,7 @@ export function StatsDisplay({ stats, totalLines }: StatsDisplayProps) {
             'Ruby': SiRuby,
             'PHP': SiPhp,
             'HTML': SiHtml5,
-            'CSS': SiCss3,
+            'CSS': SiCss,
             'SCSS': SiSass,
             'Sass': SiSass,
             'Less': SiLess,
