@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { RepoInput } from '@/components/RepoInput';
 import { StatsDisplay } from '@/components/StatsDisplay';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -59,11 +58,11 @@ export default function LandingPage({ baseUrl }: LandingPageProps) {
             price: '0',
             priceCurrency: 'USD',
         },
-        description: 'Analyze any public Git repository and discover the code composition. Visualize line counts by language in seconds.',
+        description: 'Analyze any public git repository. Visualize code composition and line counts by file type in seconds.',
     };
 
     return (
-        <main className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white selection:bg-purple-500/30 transition-colors duration-300">
+        <main className="min-h-screen flex flex-col justify-center relative bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white selection:bg-purple-500/30 transition-colors duration-300">
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -74,22 +73,28 @@ export default function LandingPage({ baseUrl }: LandingPageProps) {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/20 rounded-full blur-[120px]" />
             </div>
 
-            <div className="relative z-10 container mx-auto px-4 py-20">
-                <div className="text-center mb-16 animate-fade-in-down">
-                    <div className="mb-8">
-                        <Image src="/logo.png" alt="App Icon" width={96} height={96} className="mx-auto" />
-                    </div>
+            <div className="absolute top-6 right-6 z-20">
+                <ThemeToggle />
+            </div>
+
+            <div className={`relative z-10 container mx-auto px-4 ${stats ? 'py-16' : 'py-8 -translate-y-16 md:-translate-y-28'} flex flex-col justify-center transition-all duration-500`}>
+                <div className="text-center mb-12 animate-fade-in-down">
                     <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight">
-                        How Many <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">Lines?</span>
+                        How Many{' '}
+                        <span
+                            className="inline-block font-extrabold pb-1 drop-shadow-[0_0_20px_rgba(244,63,94,0.35)] dark:drop-shadow-[0_0_30px_rgba(236,72,153,0.5)]"
+                            style={{
+                                backgroundImage: 'linear-gradient(135deg, #f43f5e 0%, #a855f7 50%, #06b6d4 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                            }}
+                        >
+                            Lines?
+                        </span>
                     </h1>
                     <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                        Analyze any public Git repository and discover the code composition.
-                        Visualize line counts by language in seconds.
+                        Analyze any public git repository. Visualize code composition and line counts by file type in seconds.
                     </p>
-                </div>
-
-                <div className="absolute top-4 right-4">
-                    <ThemeToggle />
                 </div>
 
                 <RepoInput onAnalyze={handleAnalyze} isLoading={isLoading} />
