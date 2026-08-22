@@ -1,26 +1,45 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { LRUCache } from 'lru-cache';
 
-// Simple in-memory rate limiter for demo purposes
-// In a real distributed environment, use Redis (e.g., via Upstash)
-const rateLimit = new Map<string, { count: number; lastReset: number }>();
+// In-memory rate limiter backed by LRU cache to prevent memory leaks
 const WINDOW_MS = 60 * 1000; // 1 minute
 const LIMIT = 10; // 10 requests per minute
+const rateLimit = new LRUCache<string, { count: number; lastReset: number }>({
+    max: 5000,
+    ttl: WINDOW_MS,
+});
+
+function getClientIp(request: NextRequest): string {
+    const directIp = (request as { ip?: string }).ip;
+    if (directIp) return directIp;
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    if (forwardedFor) {
+        return forwardedFor.split(',')[0].trim();
+    }
+    return '127.0.0.1';
+}
 
 export function proxy(request: NextRequest) {
     const response = NextResponse.next();
 
-    // 1. Security Headers
+    // 1. Hardened Security Headers & CSP
+    const isDev = process.env.NODE_ENV !== 'production';
+    const scriptSrc = isDev ? "'self' 'unsafe-eval' 'unsafe-inline'" : "'self' 'unsafe-inline'";
+
     response.headers.set('X-DNS-Prefetch-Control', 'on');
     response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
     response.headers.set('X-Frame-Options', 'SAMEORIGIN');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
-    response.headers.set('Content-Security-Policy', "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+    response.headers.set(
+        'Content-Security-Policy',
+        `default-src 'self'; img-src 'self' data: https:; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self';`
+    );
 
     // 2. Rate Limiting (Only for API routes)
     if (request.nextUrl.pathname.startsWith('/api/analyze')) {
-        const ip = (request as { ip?: string }).ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
+        const ip = getClientIp(request);
         const now = Date.now();
         const record = rateLimit.get(ip) || { count: 0, lastReset: now };
 
